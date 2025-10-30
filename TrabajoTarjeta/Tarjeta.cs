@@ -10,6 +10,24 @@ namespace TrabajoTarjeta
     /// </summary>
     public class Tarjeta
     {
+        // ============================================================
+        // NUEVO: Contador e ID para identificar tarjetas
+        // ============================================================
+
+        /// <summary>
+        /// Contador estático para generar IDs únicos.
+        /// </summary>
+        private static int contadorId = 1;
+
+        /// <summary>
+        /// Identificador único de la tarjeta.
+        /// </summary>
+        public int Id { get; }
+
+        // ============================================================
+        // CÓDIGO EXISTENTE
+        // ============================================================
+
         /// <summary>
         /// Saldo actual de la tarjeta.
         /// Puede ser negativo hasta el límite establecido en SALDO_NEGATIVO_MAXIMO (-$1200).
@@ -37,10 +55,14 @@ namespace TrabajoTarjeta
 
         /// <summary>
         /// Constructor de la tarjeta.
-        /// Inicializa el saldo en $0.
+        /// Inicializa el saldo en $0 y asigna un ID único.
         /// </summary>
         public Tarjeta()
         {
+            // ============================================================
+            // MODIFICADO: Agregar asignación de ID
+            // ============================================================
+            Id = contadorId++;
             saldo = 0;
         }
 
