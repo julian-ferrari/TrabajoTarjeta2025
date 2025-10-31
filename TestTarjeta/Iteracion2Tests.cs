@@ -98,6 +98,26 @@ namespace TestTarjeta
         }
 
         [Test]
+        public void TestMedioBoletoNoPermiteSegundoViajeInmediato()
+        {
+            MedioBoleto medioBoleto = new MedioBoleto();
+            medioBoleto.Cargar(2000);
+
+            // Primer viaje exitoso
+            Boleto boleto1 = colectivo.PagarCon(medioBoleto);
+            Assert.AreEqual(790, boleto1.ObtenerTarifa());
+            Assert.AreEqual(1210, medioBoleto.ObtenerSaldo());
+
+            // Segundo viaje inmediato debería fallar por restricción de 5 minutos
+            bool resultado = colectivo.TryPagarCon(medioBoleto, out Boleto boleto2);
+            Assert.IsFalse(resultado);
+            Assert.IsNull(boleto2);
+
+            // El saldo no cambió
+            Assert.AreEqual(1210, medioBoleto.ObtenerSaldo());
+        }
+
+        [Test]
         public void TestBoletoGratuitoNoDescuentaSaldo()
         {
             BoletoGratuito boletoGratuito = new BoletoGratuito();
@@ -107,6 +127,23 @@ namespace TestTarjeta
 
             Assert.AreEqual(0, boleto.ObtenerTarifa());
             Assert.AreEqual(2000, boletoGratuito.ObtenerSaldo()); // Saldo no cambia
+        }
+
+        [Test]
+        public void TestBoletoGratuitoPrimerYSegundoViajeGratis()
+        {
+            BoletoGratuito boletoGratuito = new BoletoGratuito();
+            boletoGratuito.Cargar(2000);
+
+            // Primer viaje gratis
+            Boleto boleto1 = colectivo.PagarCon(boletoGratuito);
+            Assert.AreEqual(0, boleto1.ObtenerTarifa());
+            Assert.AreEqual(2000, boletoGratuito.ObtenerSaldo());
+
+            // Segundo viaje gratis
+            Boleto boleto2 = colectivo.PagarCon(boletoGratuito);
+            Assert.AreEqual(0, boleto2.ObtenerTarifa());
+            Assert.AreEqual(2000, boletoGratuito.ObtenerSaldo());
         }
 
         [Test]
@@ -122,24 +159,6 @@ namespace TestTarjeta
                 Assert.AreEqual(0, boleto.ObtenerTarifa());
                 Assert.AreEqual(0, franquiciaCompleta.ObtenerSaldo());
             }
-        }
-
-        [Test]
-        public void TestMedioBoletoConSaldoNegativo()
-        {
-            MedioBoleto medioBoleto = new MedioBoleto();
-            medioBoleto.Cargar(2000);
-
-            // Múltiples viajes hasta agotar saldo
-            colectivo.PagarCon(medioBoleto); // Saldo: 1210
-            colectivo.PagarCon(medioBoleto); // Saldo: 420
-            colectivo.PagarCon(medioBoleto); // Saldo: -370
-            colectivo.PagarCon(medioBoleto); // Saldo: -1160
-
-            Assert.AreEqual(-1160, medioBoleto.ObtenerSaldo());
-
-            // No debería poder hacer otro viaje
-            Assert.IsFalse(colectivo.TryPagarCon(medioBoleto, out Boleto boleto));
         }
 
         [Test]
