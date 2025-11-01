@@ -613,13 +613,11 @@ namespace TestTarjeta
             Assert.AreEqual(4000, tarjeta.ObtenerSaldoPendiente());
 
             // Hacer un viaje: $1580
+            // IMPORTANTE: El orden es:
+            // 1. Descuenta: 56000 - 1580 = 54420
+            // 2. Actualiza contador de viajes
+            // 3. Acredita pendiente: 54420 + 1580 = 56000
             Boleto boleto = colectivo.PagarCon(tarjeta);
-
-            // Después del viaje:
-            // Saldo era 56000 - 1580 = 54420
-            // Se acreditan 1580 del pendiente
-            // Saldo final: 56000
-            // Pendiente final: 4000 - 1580 = 2420
 
             Assert.AreEqual(56000, tarjeta.ObtenerSaldo());
             Assert.AreEqual(2420, tarjeta.ObtenerSaldoPendiente());
@@ -638,19 +636,19 @@ namespace TestTarjeta
             Assert.AreEqual(56000, tarjeta.ObtenerSaldo());
             Assert.AreEqual(4000, tarjeta.ObtenerSaldoPendiente());
 
-            // Primer viaje: -$1580, se acredita +$1580 del pendiente
+            // Primer viaje
             colectivo.PagarCon(tarjeta);
             Assert.AreEqual(56000, tarjeta.ObtenerSaldo());
             Assert.AreEqual(2420, tarjeta.ObtenerSaldoPendiente());
 
-            // Segundo viaje: -$1580, se acredita +$1580 del pendiente
+            // Segundo viaje
             colectivo.PagarCon(tarjeta);
             Assert.AreEqual(56000, tarjeta.ObtenerSaldo());
             Assert.AreEqual(840, tarjeta.ObtenerSaldoPendiente());
 
-            // Tercer viaje: -$1580, solo quedan $840 pendientes
+            // Tercer viaje
             colectivo.PagarCon(tarjeta);
-            Assert.AreEqual(55260, tarjeta.ObtenerSaldo()); // 56000 - 1580 + 840
+            Assert.AreEqual(55260, tarjeta.ObtenerSaldo());
             Assert.AreEqual(0, tarjeta.ObtenerSaldoPendiente());
         }
 
