@@ -578,5 +578,166 @@ namespace TestTarjeta
         }
 
         #endregion
+
+        #region Tests: Saldo pendiente de acreditación
+
+        [Test]
+        public void TestCargaExcedeLimiteQuedaPendiente()
+        {
+            Tarjeta tarjeta = new Tarjeta();
+
+            // Cargar hasta cerca del límite
+            tarjeta.Cargar(30000);
+            tarjeta.Cargar(25000); // Total: 55000
+            Assert.AreEqual(55000, tarjeta.ObtenerSaldo());
+            Assert.AreEqual(0, tarjeta.ObtenerSaldoPendiente());
+
+            // Cargar $5000 más: solo se acreditan $1000, quedan $4000 pendientes
+            tarjeta.Cargar(5000);
+
+            Assert.AreEqual(56000, tarjeta.ObtenerSaldo()); // Límite máximo
+            Assert.AreEqual(4000, tarjeta.ObtenerSaldoPendiente()); // Excedente
+        }
+
+        [Test]
+        public void TestSaldoPendienteSeAcreditaDespuesDeViaje()
+        {
+            Tarjeta tarjeta = new Tarjeta();
+            Colectivo colectivo = new Colectivo("102");
+
+            // Cargar hasta el límite con excedente
+            tarjeta.Cargar(30000);
+            tarjeta.Cargar(30000); // Total: 60000, pero límite 56000
+
+            Assert.AreEqual(56000, tarjeta.ObtenerSaldo());
+            Assert.AreEqual(4000, tarjeta.ObtenerSaldoPendiente());
+
+            // Hacer un viaje: $1580
+            Boleto boleto = colectivo.PagarCon(tarjeta);
+
+            // Después del viaje:
+            // Saldo era 56000 - 1580 = 54420
+            // Se acreditan 1580 del pendiente
+            // Saldo final: 56000
+            // Pendiente final: 4000 - 1580 = 2420
+
+            Assert.AreEqual(56000, tarjeta.ObtenerSaldo());
+            Assert.AreEqual(2420, tarjeta.ObtenerSaldoPendiente());
+        }
+
+        [Test]
+        public void TestMultiplesViajesAcreditanSaldoPendiente()
+        {
+            Tarjeta tarjeta = new Tarjeta();
+            Colectivo colectivo = new Colectivo("102");
+
+            // Cargar $60000 (límite 56000, pendiente 4000)
+            tarjeta.Cargar(30000);
+            tarjeta.Cargar(30000);
+
+            Assert.AreEqual(56000, tarjeta.ObtenerSaldo());
+            Assert.AreEqual(4000, tarjeta.ObtenerSaldoPendiente());
+
+            // Primer viaje: -$1580, se acredita +$1580 del pendiente
+            colectivo.PagarCon(tarjeta);
+            Assert.AreEqual(56000, tarjeta.ObtenerSaldo());
+            Assert.AreEqual(2420, tarjeta.ObtenerSaldoPendiente());
+
+            // Segundo viaje: -$1580, se acredita +$1580 del pendiente
+            colectivo.PagarCon(tarjeta);
+            Assert.AreEqual(56000, tarjeta.ObtenerSaldo());
+            Assert.AreEqual(840, tarjeta.ObtenerSaldoPendiente());
+
+            // Tercer viaje: -$1580, solo quedan $840 pendientes
+            colectivo.PagarCon(tarjeta);
+            Assert.AreEqual(55260, tarjeta.ObtenerSaldo()); // 56000 - 1580 + 840
+            Assert.AreEqual(0, tarjeta.ObtenerSaldoPendiente());
+        }
+
+        [Test]
+        public void TestCargaPendienteNoSeAcreditaSiSaldoEstaEnLimite()
+        {
+            Tarjeta tarjeta = new Tarjeta();
+
+            // Cargar exactamente el límite usando cargas válidas
+            tarjeta.Cargar(30000);
+            tarjeta.Cargar(20000);
+            tarjeta.Cargar(3000);
+            tarjeta.Cargar(3000); // Total: 56000
+
+            Assert.AreEqual(56000, tarjeta.ObtenerSaldo());
+
+            // Intentar cargar más: todo queda pendiente
+            tarjeta.Cargar(10000);
+
+            Assert.AreEqual(56000, tarjeta.ObtenerSaldo()); // No cambió
+            Assert.AreEqual(10000, tarjeta.ObtenerSaldoPendiente());
+
+            // Llamar manualmente a AcreditarCarga no hace nada si está lleno
+            tarjeta.AcreditarCarga();
+
+            Assert.AreEqual(56000, tarjeta.ObtenerSaldo());
+            Assert.AreEqual(10000, tarjeta.ObtenerSaldoPendiente());
+        }
+
+        [Test]
+        public void TestSaldoPendienteSeAcreditaProgresivamente()
+        {
+            Tarjeta tarjeta = new Tarjeta();
+            Colectivo colectivo = new Colectivo("102");
+
+            // Cargar con excedente
+            tarjeta.Cargar(30000);
+            tarjeta.Cargar(30000); // Saldo: 56000, Pendiente: 4000
+
+            Assert.AreEqual(56000, tarjeta.ObtenerSaldo());
+            Assert.AreEqual(4000, tarjeta.ObtenerSaldoPendiente());
+
+            // Después del primer viaje
+            colectivo.PagarCon(tarjeta);
+            Assert.AreEqual(56000, tarjeta.ObtenerSaldo());
+            Assert.AreEqual(2420, tarjeta.ObtenerSaldoPendiente());
+
+            // Después del segundo viaje
+            colectivo.PagarCon(tarjeta);
+            Assert.AreEqual(56000, tarjeta.ObtenerSaldo());
+            Assert.AreEqual(840, tarjeta.ObtenerSaldoPendiente());
+
+            // Después del tercer viaje (se acaba el pendiente)
+            colectivo.PagarCon(tarjeta);
+            Assert.AreEqual(55260, tarjeta.ObtenerSaldo());
+            Assert.AreEqual(0, tarjeta.ObtenerSaldoPendiente());
+        }
+
+        [Test]
+        public void TestObtenerSaldoPendienteInicial()
+        {
+            Tarjeta tarjeta = new Tarjeta();
+
+            Assert.AreEqual(0, tarjeta.ObtenerSaldoPendiente());
+        }
+
+        [Test]
+        public void TestLimiteActualizado56000()
+        {
+            Tarjeta tarjeta = new Tarjeta();
+
+            // Cargar hasta 56000 usando cargas válidas
+            tarjeta.Cargar(30000);
+            tarjeta.Cargar(20000);
+            tarjeta.Cargar(3000);
+            tarjeta.Cargar(3000);
+
+            Assert.AreEqual(56000, tarjeta.ObtenerSaldo());
+
+            // No se puede cargar más sin que quede pendiente
+            tarjeta.Cargar(2000);
+
+            Assert.AreEqual(56000, tarjeta.ObtenerSaldo());
+            Assert.AreEqual(2000, tarjeta.ObtenerSaldoPendiente());
+        }
+
+        #endregion
     }
+
 }

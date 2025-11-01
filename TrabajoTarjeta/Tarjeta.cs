@@ -11,140 +11,247 @@ namespace TrabajoTarjeta
     public class Tarjeta
     {
         // ============================================================
-        // NUEVO: Contador e ID para identificar tarjetas
+        // ATRIBUTOS IDENTIFICACIÓN Y SALDO
         // ============================================================
 
-        /// <summary>
-        /// Contador estático para generar IDs únicos.
-        /// </summary>
         private static int contadorId = 1;
-
-        /// <summary>
-        /// Identificador único de la tarjeta.
-        /// </summary>
         public int Id { get; }
-
-        // ============================================================
-        // CÓDIGO EXISTENTE
-        // ============================================================
-
-        /// <summary>
-        /// Saldo actual de la tarjeta.
-        /// Puede ser negativo hasta el límite establecido en SALDO_NEGATIVO_MAXIMO (-$1200).
-        /// </summary>
         protected decimal saldo;
 
+        // ============================================================
+        // NUEVO: Saldo pendiente de acreditación
+        // ============================================================
+
         /// <summary>
-        /// Lista de montos válidos que pueden ser cargados a la tarjeta.
-        /// Valores aceptados: $2000, $3000, $4000, $5000, $8000, $10000, $15000, $20000, $25000, $30000.
+        /// Saldo pendiente de acreditación cuando la carga excede el límite.
         /// </summary>
+        protected decimal saldoPendiente;
+
+        // ============================================================
+        // CARGAS Y LÍMITES
+        // ============================================================
+
         private readonly List<decimal> cargasAceptadas = new List<decimal>
         { 2000, 3000, 4000, 5000, 8000, 10000, 15000, 20000, 25000, 30000 };
 
         /// <summary>
-        /// Límite máximo de saldo que puede tener una tarjeta.
-        /// Valor: $40000.
+        /// MODIFICADO: Límite máximo de saldo (antes 40000, ahora 56000).
         /// </summary>
-        private const decimal LIMITE_SALDO = 40000;
+        private const decimal LIMITE_SALDO = 56000;
 
-        /// <summary>
-        /// Límite de saldo negativo permitido (viajes plus).
-        /// Una tarjeta puede quedar con hasta -$1200 de saldo.
-        /// </summary>
         private const decimal SALDO_NEGATIVO_MAXIMO = -1200;
 
-        /// <summary>
-        /// Constructor de la tarjeta.
-        /// Inicializa el saldo en $0 y asigna un ID único.
-        /// </summary>
+        // ============================================================
+        // ATRIBUTOS USO FRECUENTE
+        // ============================================================
+
+        protected int viajesMesActual;
+        protected DateTime? fechaUltimoViajeMensual;
+
+        // ============================================================
+        // ATRIBUTOS TRASBORDOS
+        // ============================================================
+
+        protected DateTime? fechaUltimoViaje;
+        protected string lineaUltimoViaje;
+
+        // ============================================================
+        // CONSTRUCTOR
+        // ============================================================
+
         public Tarjeta()
         {
-            // ============================================================
-            // MODIFICADO: Agregar asignación de ID
-            // ============================================================
             Id = contadorId++;
             saldo = 0;
+            saldoPendiente = 0;  // NUEVO
+            viajesMesActual = 0;
+            fechaUltimoViajeMensual = null;
+            fechaUltimoViaje = null;
+            lineaUltimoViaje = null;
         }
 
-        /// <summary>
-        /// Obtiene el saldo actual de la tarjeta.
-        /// </summary>
-        /// <returns>El saldo actual, que puede ser positivo, cero o negativo (hasta -$1200).</returns>
+        // ============================================================
+        // MÉTODOS DE CONSULTA
+        // ============================================================
+
         public virtual decimal ObtenerSaldo()
         {
             return saldo;
         }
 
         /// <summary>
-        /// Carga saldo a la tarjeta.
-        /// Solo acepta montos de la lista de cargas válidas.
-        /// Si hay saldo negativo, la carga se aplica normalmente (no se descuenta automáticamente).
+        /// NUEVO: Obtiene el saldo pendiente de acreditación.
         /// </summary>
-        /// <param name="monto">Monto a cargar. Debe estar en la lista de cargasAceptadas.</param>
-        /// <exception cref="ArgumentException">Se lanza si el monto no es una carga válida.</exception>
-        /// <exception cref="InvalidOperationException">Se lanza si la carga excede el límite de $40000.</exception>
+        public decimal ObtenerSaldoPendiente()
+        {
+            return saldoPendiente;
+        }
+
+        public decimal ObtenerLimiteSaldoNegativo()
+        {
+            return SALDO_NEGATIVO_MAXIMO;
+        }
+
+        public int ObtenerViajesMesActual()
+        {
+            ActualizarContadorMensual();
+            return viajesMesActual;
+        }
+
+        public DateTime? ObtenerFechaUltimoViaje()
+        {
+            return fechaUltimoViaje;
+        }
+
+        public string ObtenerLineaUltimoViaje()
+        {
+            return lineaUltimoViaje;
+        }
+
+        // ============================================================
+        // MÉTODO MODIFICADO: Cargar con saldo pendiente
+        // ============================================================
+
+        /// <summary>
+        /// Carga saldo a la tarjeta.
+        /// Si la carga excede el límite de $56000, el excedente queda pendiente.
+        /// </summary>
         public virtual void Cargar(decimal monto)
         {
             if (!cargasAceptadas.Contains(monto))
             {
                 throw new ArgumentException($"El monto {monto} no es una carga válida.");
             }
+
+            // Si el saldo actual + monto supera el límite
             if (saldo + monto > LIMITE_SALDO)
             {
-                throw new InvalidOperationException($"La carga excede el límite de saldo de ${LIMITE_SALDO}.");
+                // Calcular cuánto se puede acreditar
+                decimal espacioDisponible = LIMITE_SALDO - saldo;
+
+                // Acreditar hasta el límite
+                saldo = LIMITE_SALDO;
+
+                // El resto queda pendiente
+                decimal excedente = monto - espacioDisponible;
+                saldoPendiente += excedente;
             }
-            saldo += monto;
+            else
+            {
+                // Carga normal sin exceder límite
+                saldo += monto;
+            }
         }
 
+        // ============================================================
+        // NUEVO MÉTODO: Acreditar carga pendiente
+        // ============================================================
+
         /// <summary>
-        /// Verifica si es posible descontar un monto sin exceder el límite de saldo negativo.
-        /// Evalúa si después del descuento el saldo quedaría por encima o igual a -$1200.
+        /// Acredita saldo pendiente hasta alcanzar el límite de $56000.
+        /// Se llama automáticamente después de cada viaje.
         /// </summary>
-        /// <param name="monto">Monto que se desea descontar.</param>
-        /// <returns>True si el descuento es posible, False si excedería el límite negativo.</returns>
+        public void AcreditarCarga()
+        {
+            if (saldoPendiente <= 0)
+            {
+                return; // No hay nada pendiente
+            }
+
+            // Calcular cuánto espacio hay disponible
+            decimal espacioDisponible = LIMITE_SALDO - saldo;
+
+            if (espacioDisponible <= 0)
+            {
+                return; // Tarjeta llena, no se puede acreditar
+            }
+
+            // Acreditar lo que se pueda
+            if (saldoPendiente <= espacioDisponible)
+            {
+                // Se puede acreditar todo lo pendiente
+                saldo += saldoPendiente;
+                saldoPendiente = 0;
+            }
+            else
+            {
+                // Solo se puede acreditar una parte
+                saldo += espacioDisponible;
+                saldoPendiente -= espacioDisponible;
+            }
+        }
+
+        // ============================================================
+        // MÉTODOS DE VALIDACIÓN Y DESCUENTO
+        // ============================================================
+
         public virtual bool PuedeDescontar(decimal monto)
         {
             return (saldo - monto) >= SALDO_NEGATIVO_MAXIMO;
         }
 
         /// <summary>
-        /// Descuenta un monto del saldo de la tarjeta.
-        /// Permite que el saldo quede negativo hasta -$1200 (viajes plus).
-        /// Este método se utiliza al pagar un boleto.
+        /// MODIFICADO: Ahora acredita saldo pendiente después de descontar.
         /// </summary>
-        /// <param name="monto">Monto a descontar del saldo.</param>
-        /// <exception cref="InvalidOperationException">
-        /// Se lanza si el descuento haría que el saldo quede por debajo de -$1200.
-        /// </exception>
         public virtual void Descontar(decimal monto)
         {
             if (!PuedeDescontar(monto))
             {
                 throw new InvalidOperationException($"No se puede descontar ${monto}. El saldo quedaría por debajo del límite permitido de ${SALDO_NEGATIVO_MAXIMO}.");
             }
+
             saldo -= monto;
+
+            // NUEVO: Acreditar saldo pendiente después del viaje
+            AcreditarCarga();
+
+            // Actualizar contador mensual de viajes
+            ActualizarContadorMensual();
+            viajesMesActual++;
+            fechaUltimoViajeMensual = DateTime.Now;
         }
 
-        /// <summary>
-        /// Calcula la tarifa a pagar según el tipo de tarjeta.
-        /// En la tarjeta base, devuelve la tarifa completa sin descuentos.
-        /// Las clases heredadas pueden sobrescribir este método para aplicar descuentos (ej: medio boleto).
-        /// </summary>
-        /// <param name="tarifaBase">Tarifa base del boleto ($1580).</param>
-        /// <returns>La tarifa que debe pagar esta tarjeta.</returns>
+        // ============================================================
+        // CÁLCULO DE TARIFA CON USO FRECUENTE
+        // ============================================================
+
         public virtual decimal CalcularTarifa(decimal tarifaBase)
         {
-            return tarifaBase;
+            ActualizarContadorMensual();
+
+            // Aplicar descuento por uso frecuente (solo para tarjetas normales)
+            if (viajesMesActual >= 30 && viajesMesActual < 60)
+            {
+                return tarifaBase * 0.80m; // 20% descuento
+            }
+            else if (viajesMesActual >= 60 && viajesMesActual <= 80)
+            {
+                return tarifaBase * 0.75m; // 25% descuento
+            }
+
+            return tarifaBase; // Tarifa normal
         }
 
-        /// <summary>
-        /// Obtiene el límite de saldo negativo permitido.
-        /// Útil para tests y validaciones.
-        /// </summary>
-        /// <returns>El límite de saldo negativo: -$1200.</returns>
-        public decimal ObtenerLimiteSaldoNegativo()
+        // ============================================================
+        // MÉTODOS AUXILIARES
+        // ============================================================
+
+        public void RegistrarViaje(string linea)
         {
-            return SALDO_NEGATIVO_MAXIMO;
+            fechaUltimoViaje = DateTime.Now;
+            lineaUltimoViaje = linea;
+        }
+
+        protected void ActualizarContadorMensual()
+        {
+            DateTime ahora = DateTime.Now;
+
+            if (!fechaUltimoViajeMensual.HasValue ||
+                ahora.Month != fechaUltimoViajeMensual.Value.Month ||
+                ahora.Year != fechaUltimoViajeMensual.Value.Year)
+            {
+                viajesMesActual = 0;
+            }
         }
     }
 }

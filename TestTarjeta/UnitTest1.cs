@@ -125,13 +125,15 @@ namespace TestTarjeta
         {
             // Cargar hasta el límite máximo
             tarjeta.Cargar(30000);
-            tarjeta.Cargar(10000);
-            Assert.AreEqual(40000, tarjeta.ObtenerSaldo());
+            tarjeta.Cargar(20000);
+            tarjeta.Cargar(3000);
+            tarjeta.Cargar(3000);
+            Assert.AreEqual(56000, tarjeta.ObtenerSaldo());
 
             // Realizar viaje
             Boleto boleto = colectivo.PagarCon(tarjeta);
-            Assert.AreEqual(38420, boleto.ObtenerSaldoRestante());
-            Assert.AreEqual(38420, tarjeta.ObtenerSaldo());
+            Assert.AreEqual(54420, boleto.ObtenerSaldoRestante());
+            Assert.AreEqual(54420, tarjeta.ObtenerSaldo());
         }
     }
 }

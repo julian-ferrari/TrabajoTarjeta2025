@@ -57,20 +57,31 @@ namespace TestTarjeta
         }
 
         [Test]
-        public void TestCargarExcedeLimiteSaldoLanzaExcepcion()
+        public void TestCargarExcedeLimiteSaldoQuedaPendiente()
         {
+            // Cargar hasta el límite usando cargas válidas
             tarjeta.Cargar(30000);
-            tarjeta.Cargar(10000);
-            // El saldo ahora es 40000 (límite máximo)
-            Assert.Throws<InvalidOperationException>(() => tarjeta.Cargar(2000));
+            tarjeta.Cargar(20000);
+            tarjeta.Cargar(3000);
+            tarjeta.Cargar(3000);
+
+            // El saldo ahora es 56000 (límite máximo)
+            Assert.AreEqual(56000, tarjeta.ObtenerSaldo());
+
+            // Cargar más: queda pendiente en lugar de lanzar excepción
+            tarjeta.Cargar(2000);
+            Assert.AreEqual(56000, tarjeta.ObtenerSaldo());
+            Assert.AreEqual(2000, tarjeta.ObtenerSaldoPendiente());
         }
 
         [Test]
         public void TestCargarHastaLimiteSaldo()
         {
             tarjeta.Cargar(30000);
-            tarjeta.Cargar(10000);
-            Assert.AreEqual(40000, tarjeta.ObtenerSaldo());
+            tarjeta.Cargar(20000);
+            tarjeta.Cargar(3000);
+            tarjeta.Cargar(3000);
+            Assert.AreEqual(56000, tarjeta.ObtenerSaldo());
         }
 
         [Test]
