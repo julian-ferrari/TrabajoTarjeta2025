@@ -1,31 +1,54 @@
-﻿namespace TrabajoTarjeta
+﻿using System;
+
+namespace TrabajoTarjeta
 {
-    /// <summary>
-    /// Tarjeta con franquicia completa (jubilados/pensionados).
-    /// Permite viajar de forma gratuita sin consumir saldo.
-    /// No requiere saldo disponible para poder utilizarse.
-    /// </summary>
     public class FranquiciaCompleta : Tarjeta
     {
-        /// <summary>
-        /// Calcula la tarifa para franquicia completa.
-        /// </summary>
-        /// <param name="tarifaBase">Tarifa completa del boleto ($1580).</param>
-        /// <returns>Siempre devuelve $0 (viaje gratuito).</returns>
         public override decimal CalcularTarifa(decimal tarifaBase)
         {
             return 0;
         }
 
-        /// <summary>
-        /// Verifica si puede descontar el monto del saldo.
-        /// Como la franquicia completa viaja gratis (tarifa = $0), siempre puede pagar.
-        /// </summary>
-        /// <param name="monto">Monto que se desea descontar (será $0).</param>
-        /// <returns>Siempre devuelve true, permitiendo viajar sin restricciones de saldo.</returns>
+        // ============================================================
+        // MÉTODO MODIFICADO: Agregar validación horaria
+        // ============================================================
+
         public override bool PuedeDescontar(decimal monto)
         {
-            // Franquicia completa siempre puede pagar (tarifa = 0)
+            // ============================================================
+            // NUEVA VALIDACIÓN: Horario permitido (L-V 6-22hs)
+            // ============================================================
+            if (!EsHorarioPermitido(DateTime.Now))
+            {
+                return false;
+            }
+
+            return true;
+        }
+
+        // ============================================================
+        // NUEVO MÉTODO: Validar horario y día
+        // ============================================================
+
+        /// <summary>
+        /// Verifica si el horario y día son válidos para franquicias.
+        /// Lunes a Viernes de 6:00 a 22:00.
+        /// </summary>
+        protected bool EsHorarioPermitido(DateTime fecha)
+        {
+            // Verificar día de la semana (L-V)
+            if (fecha.DayOfWeek == DayOfWeek.Saturday || fecha.DayOfWeek == DayOfWeek.Sunday)
+            {
+                return false;
+            }
+
+            // Verificar horario (6:00 a 22:00)
+            int hora = fecha.Hour;
+            if (hora < 6 || hora >= 22)
+            {
+                return false;
+            }
+
             return true;
         }
     }

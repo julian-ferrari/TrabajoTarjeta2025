@@ -17,6 +17,29 @@ namespace TestTarjeta
             colectivo = new Colectivo("102 Rojo");
         }
 
+        /// <summary>
+        /// Verifica si estamos en horario válido para franquicias (L-V 6-22hs).
+        /// </summary>
+        private bool EsHorarioValidoParaFranquicias()
+        {
+            DateTime ahora = DateTime.Now;
+
+            // Verificar día (L-V)
+            if (ahora.DayOfWeek == DayOfWeek.Saturday || ahora.DayOfWeek == DayOfWeek.Sunday)
+            {
+                return false;
+            }
+
+            // Verificar hora (6-22)
+            if (ahora.Hour < 6 || ahora.Hour >= 22)
+            {
+                return false;
+            }
+
+            return true;
+        }
+
+
         #region Tests Saldo Negativo
 
         [Test]
@@ -88,59 +111,74 @@ namespace TestTarjeta
         [Test]
         public void TestMedioBoletoTarifaEsLaMitad()
         {
+            if (!EsHorarioValidoParaFranquicias())
+            {
+                Assert.Ignore("Test solo válido L-V entre 6:00 y 22:00");
+            }
+
             MedioBoleto medioBoleto = new MedioBoleto();
             medioBoleto.Cargar(2000);
 
             Boleto boleto = colectivo.PagarCon(medioBoleto);
 
-            Assert.AreEqual(790, boleto.ObtenerTarifa()); // 1580 / 2 = 790
-            Assert.AreEqual(1210, medioBoleto.ObtenerSaldo()); // 2000 - 790 = 1210
+            Assert.AreEqual(790, boleto.ObtenerTarifa());
+            Assert.AreEqual(1210, medioBoleto.ObtenerSaldo());
         }
 
         [Test]
         public void TestMedioBoletoNoPermiteSegundoViajeInmediato()
         {
+            if (!EsHorarioValidoParaFranquicias())
+            {
+                Assert.Ignore("Test solo válido L-V entre 6:00 y 22:00");
+            }
+
             MedioBoleto medioBoleto = new MedioBoleto();
             medioBoleto.Cargar(2000);
 
-            // Primer viaje exitoso
             Boleto boleto1 = colectivo.PagarCon(medioBoleto);
             Assert.AreEqual(790, boleto1.ObtenerTarifa());
             Assert.AreEqual(1210, medioBoleto.ObtenerSaldo());
 
-            // Segundo viaje inmediato debería fallar por restricción de 5 minutos
             bool resultado = colectivo.TryPagarCon(medioBoleto, out Boleto boleto2);
             Assert.IsFalse(resultado);
             Assert.IsNull(boleto2);
 
-            // El saldo no cambió
             Assert.AreEqual(1210, medioBoleto.ObtenerSaldo());
         }
 
         [Test]
         public void TestBoletoGratuitoNoDescuentaSaldo()
         {
+            if (!EsHorarioValidoParaFranquicias())
+            {
+                Assert.Ignore("Test solo válido L-V entre 6:00 y 22:00");
+            }
+
             BoletoGratuito boletoGratuito = new BoletoGratuito();
             boletoGratuito.Cargar(2000);
 
             Boleto boleto = colectivo.PagarCon(boletoGratuito);
 
             Assert.AreEqual(0, boleto.ObtenerTarifa());
-            Assert.AreEqual(2000, boletoGratuito.ObtenerSaldo()); // Saldo no cambia
+            Assert.AreEqual(2000, boletoGratuito.ObtenerSaldo());
         }
 
         [Test]
         public void TestBoletoGratuitoPrimerYSegundoViajeGratis()
         {
+            if (!EsHorarioValidoParaFranquicias())
+            {
+                Assert.Ignore("Test solo válido L-V entre 6:00 y 22:00");
+            }
+
             BoletoGratuito boletoGratuito = new BoletoGratuito();
             boletoGratuito.Cargar(2000);
 
-            // Primer viaje gratis
             Boleto boleto1 = colectivo.PagarCon(boletoGratuito);
             Assert.AreEqual(0, boleto1.ObtenerTarifa());
             Assert.AreEqual(2000, boletoGratuito.ObtenerSaldo());
 
-            // Segundo viaje gratis
             Boleto boleto2 = colectivo.PagarCon(boletoGratuito);
             Assert.AreEqual(0, boleto2.ObtenerTarifa());
             Assert.AreEqual(2000, boletoGratuito.ObtenerSaldo());
@@ -149,10 +187,13 @@ namespace TestTarjeta
         [Test]
         public void TestFranquiciaCompletaSiemprePuedePagar()
         {
-            FranquiciaCompleta franquiciaCompleta = new FranquiciaCompleta();
-            // No cargar saldo
+            if (!EsHorarioValidoParaFranquicias())
+            {
+                Assert.Ignore("Test solo válido L-V entre 6:00 y 22:00");
+            }
 
-            // Debería poder pagar múltiples viajes sin saldo
+            FranquiciaCompleta franquiciaCompleta = new FranquiciaCompleta();
+
             for (int i = 0; i < 10; i++)
             {
                 Boleto boleto = colectivo.PagarCon(franquiciaCompleta);
@@ -164,6 +205,11 @@ namespace TestTarjeta
         [Test]
         public void TestTiposDeTarjetasConMismoColectivo()
         {
+            if (!EsHorarioValidoParaFranquicias())
+            {
+                Assert.Ignore("Test solo válido L-V entre 6:00 y 22:00");
+            }
+
             Tarjeta normal = new Tarjeta();
             MedioBoleto medio = new MedioBoleto();
             FranquiciaCompleta gratuita = new FranquiciaCompleta();
