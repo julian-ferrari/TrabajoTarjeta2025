@@ -19,12 +19,9 @@ namespace TrabajoTarjeta
         protected decimal saldo;
 
         // ============================================================
-        // NUEVO: Saldo pendiente de acreditación
+        // SALDO PENDIENTE
         // ============================================================
 
-        /// <summary>
-        /// Saldo pendiente de acreditación cuando la carga excede el límite.
-        /// </summary>
         protected decimal saldoPendiente;
 
         // ============================================================
@@ -34,22 +31,18 @@ namespace TrabajoTarjeta
         private readonly List<decimal> cargasAceptadas = new List<decimal>
         { 2000, 3000, 4000, 5000, 8000, 10000, 15000, 20000, 25000, 30000 };
 
-        /// <summary>
-        /// MODIFICADO: Límite máximo de saldo (antes 40000, ahora 56000).
-        /// </summary>
         private const decimal LIMITE_SALDO = 56000;
-
         private const decimal SALDO_NEGATIVO_MAXIMO = -1200;
 
         // ============================================================
-        // ATRIBUTOS USO FRECUENTE
+        // USO FRECUENTE
         // ============================================================
 
         protected int viajesMesActual;
         protected DateTime? fechaUltimoViajeMensual;
 
         // ============================================================
-        // ATRIBUTOS TRASBORDOS
+        // TRASBORDOS
         // ============================================================
 
         protected DateTime? fechaUltimoViaje;
@@ -63,7 +56,7 @@ namespace TrabajoTarjeta
         {
             Id = contadorId++;
             saldo = 0;
-            saldoPendiente = 0;  // NUEVO
+            saldoPendiente = 0;
             viajesMesActual = 0;
             fechaUltimoViajeMensual = null;
             fechaUltimoViaje = null;
@@ -79,9 +72,6 @@ namespace TrabajoTarjeta
             return saldo;
         }
 
-        /// <summary>
-        /// NUEVO: Obtiene el saldo pendiente de acreditación.
-        /// </summary>
         public decimal ObtenerSaldoPendiente()
         {
             return saldoPendiente;
@@ -109,13 +99,9 @@ namespace TrabajoTarjeta
         }
 
         // ============================================================
-        // MÉTODO MODIFICADO: Cargar con saldo pendiente
+        // CARGAR
         // ============================================================
 
-        /// <summary>
-        /// Carga saldo a la tarjeta.
-        /// Si la carga excede el límite de $56000, el excedente queda pendiente.
-        /// </summary>
         public virtual void Cargar(decimal monto)
         {
             if (!cargasAceptadas.Contains(monto))
@@ -123,66 +109,51 @@ namespace TrabajoTarjeta
                 throw new ArgumentException($"El monto {monto} no es una carga válida.");
             }
 
-            // Si el saldo actual + monto supera el límite
             if (saldo + monto > LIMITE_SALDO)
             {
-                // Calcular cuánto se puede acreditar
                 decimal espacioDisponible = LIMITE_SALDO - saldo;
-
-                // Acreditar hasta el límite
                 saldo = LIMITE_SALDO;
-
-                // El resto queda pendiente
                 decimal excedente = monto - espacioDisponible;
                 saldoPendiente += excedente;
             }
             else
             {
-                // Carga normal sin exceder límite
                 saldo += monto;
             }
         }
 
         // ============================================================
-        // NUEVO MÉTODO: Acreditar carga pendiente
+        // ACREDITAR CARGA PENDIENTE
         // ============================================================
 
-        /// <summary>
-        /// Acredita saldo pendiente hasta alcanzar el límite de $56000.
-        /// Se llama automáticamente después de cada viaje.
-        /// </summary>
         public void AcreditarCarga()
         {
             if (saldoPendiente <= 0)
             {
-                return; // No hay nada pendiente
+                return;
             }
 
-            // Calcular cuánto espacio hay disponible
             decimal espacioDisponible = LIMITE_SALDO - saldo;
 
             if (espacioDisponible <= 0)
             {
-                return; // Tarjeta llena, no se puede acreditar
+                return;
             }
 
-            // Acreditar lo que se pueda
             if (saldoPendiente <= espacioDisponible)
             {
-                // Se puede acreditar todo lo pendiente
                 saldo += saldoPendiente;
                 saldoPendiente = 0;
             }
             else
             {
-                // Solo se puede acreditar una parte
                 saldo += espacioDisponible;
                 saldoPendiente -= espacioDisponible;
             }
         }
 
         // ============================================================
-        // MÉTODOS DE VALIDACIÓN Y DESCUENTO
+        // VALIDACIÓN Y DESCUENTO
         // ============================================================
 
         public virtual bool PuedeDescontar(decimal monto)
@@ -190,9 +161,6 @@ namespace TrabajoTarjeta
             return (saldo - monto) >= SALDO_NEGATIVO_MAXIMO;
         }
 
-        /// <summary>
-        /// MODIFICADO: Ahora acredita saldo pendiente después de descontar.
-        /// </summary>
         public virtual void Descontar(decimal monto)
         {
             if (!PuedeDescontar(monto))
@@ -202,38 +170,42 @@ namespace TrabajoTarjeta
 
             saldo -= monto;
 
-            // NUEVO: Acreditar saldo pendiente después del viaje
-            AcreditarCarga();
-
             // Actualizar contador mensual de viajes
             ActualizarContadorMensual();
             viajesMesActual++;
             fechaUltimoViajeMensual = DateTime.Now;
+
+            // Acreditar saldo pendiente
+            AcreditarCarga();
         }
 
         // ============================================================
-        // CÁLCULO DE TARIFA CON USO FRECUENTE
+        // CALCULAR TARIFA CON USO FRECUENTE
         // ============================================================
 
         public virtual decimal CalcularTarifa(decimal tarifaBase)
         {
             ActualizarContadorMensual();
 
-            // Aplicar descuento por uso frecuente (solo para tarjetas normales)
-            if (viajesMesActual >= 30 && viajesMesActual < 60)
+            // CLAVE: Consideramos el viaje que ESTÁ POR REALIZARSE
+            // Por eso usamos viajesMesActual + 1
+            int viajeActual = viajesMesActual + 1;
+
+            // Aplicar descuento por uso frecuente
+            if (viajeActual >= 30 && viajeActual < 60)
             {
-                return tarifaBase * 0.80m; // 20% descuento
+                return tarifaBase * 0.80m; // 20% descuento (viajes 30-59)
             }
-            else if (viajesMesActual >= 60 && viajesMesActual <= 80)
+            else if (viajeActual >= 60 && viajeActual <= 80)
             {
-                return tarifaBase * 0.75m; // 25% descuento
+                return tarifaBase * 0.75m; // 25% descuento (viajes 60-80)
             }
 
-            return tarifaBase; // Tarifa normal
+            return tarifaBase; // Tarifa normal (viajes 1-29 y 81+)
         }
 
         // ============================================================
-        // MÉTODOS AUXILIARES
+        // TRASBORDOS
         // ============================================================
 
         public void RegistrarViaje(string linea)
@@ -241,6 +213,10 @@ namespace TrabajoTarjeta
             fechaUltimoViaje = DateTime.Now;
             lineaUltimoViaje = linea;
         }
+
+        // ============================================================
+        // ACTUALIZAR CONTADOR MENSUAL
+        // ============================================================
 
         protected void ActualizarContadorMensual()
         {

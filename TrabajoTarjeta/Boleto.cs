@@ -38,8 +38,13 @@ namespace TrabajoTarjeta
         /// </summary>
         private readonly int idTarjeta;
 
+        /// <summary>
+        /// Indica si el boleto corresponde a un trasbordo.
+        /// </summary>
+        private readonly bool esTrasbordo;
+
         // ============================================================
-        // CONSTRUCTOR MODIFICADO: Ahora recibe más parámetros
+        // CONSTRUCTOR MODIFICADO: Ahora incluye esTrasbordo
         // ============================================================
 
         /// <summary>
@@ -52,8 +57,9 @@ namespace TrabajoTarjeta
         /// <param name="tipoTarjeta">Tipo de tarjeta utilizada</param>
         /// <param name="totalAbonado">Monto total pagado (puede incluir deuda)</param>
         /// <param name="idTarjeta">ID de la tarjeta</param>
+        /// <param name="esTrasbordo">Si es un trasbordo o no</param>
         public Boleto(DateTime fechaHora, decimal tarifa, decimal saldoRestante, string linea,
-                      string tipoTarjeta, decimal totalAbonado, int idTarjeta)
+                      string tipoTarjeta, decimal totalAbonado, int idTarjeta, bool esTrasbordo = false)
         {
             this.fechaHora = fechaHora;
             this.tarifa = tarifa;
@@ -62,6 +68,7 @@ namespace TrabajoTarjeta
             this.tipoTarjeta = tipoTarjeta ?? "Tarjeta";
             this.totalAbonado = totalAbonado;
             this.idTarjeta = idTarjeta;
+            this.esTrasbordo = esTrasbordo;
         }
 
         // ============================================================
@@ -120,13 +127,23 @@ namespace TrabajoTarjeta
             return idTarjeta;
         }
 
+        /// <summary>
+        /// Obtiene si el boleto es un trasbordo.
+        /// </summary>
+        /// <returns>True si es trasbordo, False si es viaje normal</returns>
+        public bool EsTrasbordo()
+        {
+            return esTrasbordo;
+        }
+
         // ============================================================
-        // ToString MODIFICADO: Incluye nueva información
+        // ToString MODIFICADO: Incluye información de trasbordo
         // ============================================================
 
         public override string ToString()
         {
-            return $"Boleto - Línea: {linea}, Fecha: {fechaHora:dd/MM/yyyy HH:mm:ss}, " +
+            string infoTrasbordo = esTrasbordo ? " [TRASBORDO]" : "";
+            return $"Boleto{infoTrasbordo} - Línea: {linea}, Fecha: {fechaHora:dd/MM/yyyy HH:mm:ss}, " +
                    $"Tipo: {tipoTarjeta}, Tarifa: ${tarifa}, Total abonado: ${totalAbonado}, " +
                    $"Saldo restante: ${saldoRestante}, ID Tarjeta: {idTarjeta}";
         }
