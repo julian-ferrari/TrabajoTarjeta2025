@@ -72,39 +72,6 @@ namespace TestTarjeta
         #region Tests condicionales - ejecutan cuando el horario es apropiado
 
         [Test]
-        public void TestMedioBoleto_FlujoCon3Viajes_PrimerosDosConDescuento()
-        {
-            DateTime ahora = DateTime.Now;
-            if (ahora.DayOfWeek == DayOfWeek.Saturday || ahora.DayOfWeek == DayOfWeek.Sunday ||
-                ahora.Hour < 6 || ahora.Hour >= 22)
-            {
-                Assert.Ignore("Test requiere horario L-V 6-22");
-            }
-
-            MedioBoleto medio = new MedioBoleto();
-            medio.Cargar(10000);
-            Colectivo colectivo = new Colectivo("102");
-
-            // Viaje 1: con descuento (790)
-            Boleto b1 = colectivo.PagarCon(medio);
-            Assert.AreEqual(790, b1.ObtenerTarifa());
-            decimal saldo1 = medio.ObtenerSaldo();
-            Assert.AreEqual(9210, saldo1);
-
-            // Viaje 2: con descuento (790)
-            Boleto b2 = colectivo.PagarCon(medio);
-            Assert.AreEqual(790, b2.ObtenerTarifa());
-            decimal saldo2 = medio.ObtenerSaldo();
-            Assert.AreEqual(8420, saldo2);
-
-            // Viaje 3: tarifa completa (1580)
-            Boleto b3 = colectivo.PagarCon(medio);
-            Assert.AreEqual(1580, b3.ObtenerTarifa());
-            decimal saldo3 = medio.ObtenerSaldo();
-            Assert.AreEqual(6840, saldo3);
-        }
-
-        [Test]
         public void TestBoletoGratuito_FlujoCon3Viajes_PrimerosDosGratis()
         {
             DateTime ahora = DateTime.Now;

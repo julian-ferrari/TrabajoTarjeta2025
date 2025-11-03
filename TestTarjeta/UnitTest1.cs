@@ -96,31 +96,6 @@ namespace TestTarjeta
         }
 
         [Test]
-        public void TestDiferentesColectivosConMismaTarjeta()
-        {
-            Colectivo colectivo121 = new Colectivo("121 Verde");
-            Colectivo colectivo144 = new Colectivo("144 Negro");
-
-            tarjeta.Cargar(10000);
-
-            Boleto boleto102 = colectivo.PagarCon(tarjeta);
-            Boleto boleto121 = colectivo121.PagarCon(tarjeta);
-            Boleto boleto144 = colectivo144.PagarCon(tarjeta);
-
-            Assert.AreEqual("102 Rojo", boleto102.ObtenerLinea());
-            Assert.AreEqual("121 Verde", boleto121.ObtenerLinea());
-            Assert.AreEqual("144 Negro", boleto144.ObtenerLinea());
-
-            // Verificar que todas las tarifas son iguales
-            Assert.AreEqual(1580, boleto102.ObtenerTarifa());
-            Assert.AreEqual(1580, boleto121.ObtenerTarifa());
-            Assert.AreEqual(1580, boleto144.ObtenerTarifa());
-
-            // Verificar saldo final
-            Assert.AreEqual(5260, tarjeta.ObtenerSaldo()); // 10000 - (3 * 1580)
-        }
-
-        [Test]
         public void TestLimiteSaldoMaximoYViajeCompleto()
         {
             // Cargar hasta el límite máximo

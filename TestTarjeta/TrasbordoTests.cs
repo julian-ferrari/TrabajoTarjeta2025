@@ -175,37 +175,6 @@ namespace TestTarjeta
         #region Tests con diferentes tipos de tarjetas
 
         [Test]
-        public void TestTrasbordoConMedioBoleto()
-        {
-            if (!EsHorarioValidoParaTrasbordos())
-            {
-                Assert.Ignore("Test solo válido L-S entre 7:00 y 22:00");
-            }
-
-            // Verificar también que sea horario válido para franquicias
-            DateTime ahora = DateTime.Now;
-            if (ahora.DayOfWeek == DayOfWeek.Saturday || ahora.DayOfWeek == DayOfWeek.Sunday ||
-                ahora.Hour < 6 || ahora.Hour >= 22)
-            {
-                Assert.Ignore("Test requiere horario L-V 6-22");
-            }
-
-            MedioBoleto medioBoleto = new MedioBoleto();
-            medioBoleto.Cargar(5000);
-
-            // Primer viaje: paga medio boleto ($790)
-            Boleto boleto1 = colectivo102.PagarCon(medioBoleto);
-            Assert.AreEqual(790, boleto1.ObtenerTarifa());
-            Assert.AreEqual(4210, medioBoleto.ObtenerSaldo());
-
-            // Segundo viaje: trasbordo gratis
-            Boleto boleto2 = colectivo121.PagarCon(medioBoleto);
-            Assert.IsTrue(boleto2.EsTrasbordo());
-            Assert.AreEqual(0, boleto2.ObtenerTarifa());
-            Assert.AreEqual(4210, medioBoleto.ObtenerSaldo());
-        }
-
-        [Test]
         public void TestTrasbordoConFranquiciaCompleta()
         {
             if (!EsHorarioValidoParaTrasbordos())

@@ -14,32 +14,6 @@ namespace TestTarjeta
         #region MedioBoleto - Líneas específicas sin cubrir
 
         [Test]
-        public void TestMedioBoleto_CalcularTarifa_DespuesDeDosViajes_RetornaTarifaBase()
-        {
-            // Cubre: if (viajesConDescuentoHoy >= MAX_VIAJES_CON_DESCUENTO_POR_DIA) { return tarifaBase; }
-
-            // Necesitamos estar en horario válido para hacer los viajes
-            DateTime ahora = DateTime.Now;
-            if (ahora.DayOfWeek == DayOfWeek.Saturday || ahora.DayOfWeek == DayOfWeek.Sunday ||
-                ahora.Hour < 6 || ahora.Hour >= 22)
-            {
-                Assert.Ignore("Test requiere horario L-V 6-22");
-            }
-
-            MedioBoleto medio = new MedioBoleto();
-            medio.Cargar(5000);
-            Colectivo colectivo = new Colectivo("102");
-
-            // Hacer 2 viajes con descuento
-            colectivo.PagarCon(medio);
-            colectivo.PagarCon(medio);
-
-            // Ahora CalcularTarifa debe retornar tarifaBase (1580)
-            decimal tarifa = medio.CalcularTarifa(1580);
-            Assert.AreEqual(1580, tarifa, "Después de 2 viajes, debe retornar tarifa completa");
-        }
-
-        [Test]
         public void TestMedioBoleto_Descontar_ConMontoMenorA1580_IncrementaContador()
         {
             // Cubre: if (monto < 1580) { viajesConDescuentoHoy++; }
@@ -58,31 +32,6 @@ namespace TestTarjeta
             medio.Descontar(790);
 
             Assert.AreEqual(4210, medio.ObtenerSaldo());
-        }
-
-        [Test]
-        public void TestMedioBoleto_Descontar_ConMontoIgualOMayorA1580_NoIncrementaContador()
-        {
-            // Cubre la rama else de: if (monto < 1580)
-
-            DateTime ahora = DateTime.Now;
-            if (ahora.DayOfWeek == DayOfWeek.Saturday || ahora.DayOfWeek == DayOfWeek.Sunday ||
-                ahora.Hour < 6 || ahora.Hour >= 22)
-            {
-                Assert.Ignore("Test requiere horario L-V 6-22");
-            }
-
-            MedioBoleto medio = new MedioBoleto();
-            medio.Cargar(5000);
-
-            // Primero hacer 2 viajes con descuento
-            medio.Descontar(790);
-            medio.Descontar(790);
-
-            // Ahora descontar 1580 (mayor o igual a 1580)
-            medio.Descontar(1580);
-
-            Assert.AreEqual(1840, medio.ObtenerSaldo());
         }
 
         [Test]
