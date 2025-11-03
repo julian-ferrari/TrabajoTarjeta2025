@@ -15,7 +15,6 @@ namespace TestTarjeta
             colectivo = new Colectivo("102 Rojo");
         }
 
-        // MANTENER: Método de la rama feature/8-restricciones-horarias
         private bool EsHorarioValidoParaFranquicias()
         {
             DateTime ahora = DateTime.Now;
@@ -55,10 +54,7 @@ namespace TestTarjeta
         {
             Tarjeta tarjeta = new Tarjeta();
 
-            // Cargar saldo suficiente
-            // 29 viajes normales: 29 * 1580 = 45820
-            // 30 viajes con descuento: 30 * 1264 = 37920
-            // Total: 83740
+            // Cargar saldo suficiente usando cargas válidas
             tarjeta.Cargar(30000);
             tarjeta.Cargar(30000);
             tarjeta.Cargar(25000); // Total: 85000
@@ -97,7 +93,7 @@ namespace TestTarjeta
         {
             Tarjeta tarjeta = new Tarjeta();
 
-            // Cargar saldo muy grande
+            // Cargar saldo muy grande usando cargas válidas
             tarjeta.Cargar(30000);
             tarjeta.Cargar(30000);
             tarjeta.Cargar(30000);
@@ -181,7 +177,6 @@ namespace TestTarjeta
         [Test]
         public void TestUsoFrecuenteNoAplicaAFranquicias()
         {
-            // MANTENER: Validación de horario de la rama feature/8-restricciones-horarias
             if (!EsHorarioValidoParaFranquicias())
             {
                 Assert.Ignore("Test solo válido L-V entre 6:00 y 22:00");
