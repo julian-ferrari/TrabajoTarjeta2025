@@ -9,7 +9,7 @@ namespace TestTarjeta
     /// Enfocados en cubrir ramas no testeadas en franquicias y colectivos.
     /// </summary>
     [TestFixture]
-    public class CoverageImprovementTests
+    public class BoletoFranquiciasTests
     {
         #region Tests para MedioBoleto
 
