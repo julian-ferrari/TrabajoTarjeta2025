@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 
 namespace TrabajoTarjeta
 {
@@ -6,6 +6,7 @@ namespace TrabajoTarjeta
     /// Representa un colectivo interurbano con tarifa diferencial.
     /// Tarifa base: $3000.
     /// Admite todas las franquicias con descuentos proporcionales.
+    /// Soporta trasbordos gratuitos.
     /// </summary>
     public class ColectivoInterurbano : Colectivo
     {
@@ -31,7 +32,7 @@ namespace TrabajoTarjeta
         /// <summary>
         /// Procesa el pago de un boleto interurbano con una tarjeta.
         /// Usa la tarifa interurbana de $3000.
-        /// AGREGADO: Palabra clave 'new' para ocultar intencionalmente el método de la clase base.
+        /// Soporta trasbordos gratuitos.
         /// </summary>
         public new Boleto PagarCon(Tarjeta tarjeta)
         {
@@ -41,31 +42,40 @@ namespace TrabajoTarjeta
             }
 
             decimal saldoAntes = tarjeta.ObtenerSaldo();
-            decimal tarifa = tarjeta.CalcularTarifa(TARIFA_INTERURBANA);
+            
+            // Verificar si es trasbordo (heredado de Colectivo)
+            bool esTrasbordo = EsTrasbordo(tarjeta);
+
+            // Si es trasbordo, la tarifa es 0
+            decimal tarifa = esTrasbordo ? 0 : tarjeta.CalcularTarifa(TARIFA_INTERURBANA);
 
             if (!tarjeta.PuedeDescontar(tarifa))
             {
-                throw new InvalidOperationException("La tarjeta no tiene saldo suficiente para pagar el pasaje interurbano.");
+                throw new InvalidOperationException("La tarjeta no tiene saldo suficiente para pagar el pasaje.");
             }
 
             tarjeta.Descontar(tarifa);
             decimal saldoDespues = tarjeta.ObtenerSaldo();
             decimal totalAbonado = saldoAntes - saldoDespues;
 
+            // Registrar el viaje para futuros trasbordos
+            tarjeta.RegistrarViaje(linea);
+
             return new Boleto(
                 fechaHora: DateTime.Now,
                 tarifa: tarifa,
                 saldoRestante: saldoDespues,
-                linea: ObtenerLinea(),
+                linea: linea,
                 tipoTarjeta: tarjeta.GetType().Name,
                 totalAbonado: totalAbonado,
-                idTarjeta: tarjeta.Id
+                idTarjeta: tarjeta.Id,
+                esTrasbordo: esTrasbordo
             );
         }
 
         /// <summary>
         /// Intenta pagar con la tarjeta. Retorna false si no se puede.
-        /// AGREGADO: Palabra clave 'new' para ocultar intencionalmente el método de la clase base.
+        /// Soporta trasbordos gratuitos.
         /// </summary>
         public new bool TryPagarCon(Tarjeta tarjeta, out Boleto boleto)
         {
@@ -77,7 +87,11 @@ namespace TrabajoTarjeta
             }
 
             decimal saldoAntes = tarjeta.ObtenerSaldo();
-            decimal tarifa = tarjeta.CalcularTarifa(TARIFA_INTERURBANA);
+            
+            // Verificar si es trasbordo (heredado de Colectivo)
+            bool esTrasbordo = EsTrasbordo(tarjeta);
+
+            decimal tarifa = esTrasbordo ? 0 : tarjeta.CalcularTarifa(TARIFA_INTERURBANA);
 
             if (!tarjeta.PuedeDescontar(tarifa))
             {
@@ -88,14 +102,18 @@ namespace TrabajoTarjeta
             decimal saldoDespues = tarjeta.ObtenerSaldo();
             decimal totalAbonado = saldoAntes - saldoDespues;
 
+            // Registrar el viaje para futuros trasbordos
+            tarjeta.RegistrarViaje(linea);
+
             boleto = new Boleto(
                 fechaHora: DateTime.Now,
                 tarifa: tarifa,
                 saldoRestante: saldoDespues,
-                linea: ObtenerLinea(),
+                linea: linea,
                 tipoTarjeta: tarjeta.GetType().Name,
                 totalAbonado: totalAbonado,
-                idTarjeta: tarjeta.Id
+                idTarjeta: tarjeta.Id,
+                esTrasbordo: esTrasbordo
             );
 
             return true;
