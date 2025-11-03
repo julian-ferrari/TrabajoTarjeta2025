@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 
 namespace TrabajoTarjeta
 {
@@ -6,6 +6,7 @@ namespace TrabajoTarjeta
     /// Representa un colectivo interurbano con tarifa diferencial.
     /// Tarifa base: $3000.
     /// Admite todas las franquicias con descuentos proporcionales.
+    /// Soporta trasbordos gratuitos.
     /// </summary>
     public class ColectivoInterurbano : Colectivo
     {
@@ -41,7 +42,7 @@ namespace TrabajoTarjeta
             }
 
             decimal saldoAntes = tarjeta.ObtenerSaldo();
-
+            
             // Verificar si es trasbordo (heredado de Colectivo)
             bool esTrasbordo = EsTrasbordo(tarjeta);
 
@@ -55,7 +56,6 @@ namespace TrabajoTarjeta
 
             tarjeta.Descontar(tarifa);
             decimal saldoDespues = tarjeta.ObtenerSaldo();
-
             decimal totalAbonado = saldoAntes - saldoDespues;
 
             // Registrar el viaje para futuros trasbordos
@@ -87,7 +87,7 @@ namespace TrabajoTarjeta
             }
 
             decimal saldoAntes = tarjeta.ObtenerSaldo();
-
+            
             // Verificar si es trasbordo (heredado de Colectivo)
             bool esTrasbordo = EsTrasbordo(tarjeta);
 
@@ -100,7 +100,6 @@ namespace TrabajoTarjeta
 
             tarjeta.Descontar(tarifa);
             decimal saldoDespues = tarjeta.ObtenerSaldo();
-
             decimal totalAbonado = saldoAntes - saldoDespues;
 
             // Registrar el viaje para futuros trasbordos
