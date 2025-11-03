@@ -1,4 +1,4 @@
-﻿using NUnit.Framework;
+using NUnit.Framework;
 using System;
 using TrabajoTarjeta;
 
@@ -13,6 +13,21 @@ namespace TestTarjeta
         public void SetUp()
         {
             colectivo = new Colectivo("102 Rojo");
+        }
+
+        // MANTENER: Método de la rama feature/8-restricciones-horarias
+        private bool EsHorarioValidoParaFranquicias()
+        {
+            DateTime ahora = DateTime.Now;
+            if (ahora.DayOfWeek == DayOfWeek.Saturday || ahora.DayOfWeek == DayOfWeek.Sunday)
+            {
+                return false;
+            }
+            if (ahora.Hour < 6 || ahora.Hour >= 22)
+            {
+                return false;
+            }
+            return true;
         }
 
         #region Tests Issue #7: Boleto de uso frecuente
@@ -166,6 +181,12 @@ namespace TestTarjeta
         [Test]
         public void TestUsoFrecuenteNoAplicaAFranquicias()
         {
+            // MANTENER: Validación de horario de la rama feature/8-restricciones-horarias
+            if (!EsHorarioValidoParaFranquicias())
+            {
+                Assert.Ignore("Test solo válido L-V entre 6:00 y 22:00");
+            }
+
             MedioBoleto medioBoleto = new MedioBoleto();
             FranquiciaCompleta franquicia = new FranquiciaCompleta();
             BoletoGratuito boletoGratuito = new BoletoGratuito();
@@ -194,6 +215,220 @@ namespace TestTarjeta
             // Tercer viaje: $1580 (sin descuento por uso frecuente)
             Boleto boletoGrat3 = colectivo.PagarCon(boletoGratuito);
             Assert.AreEqual(1580, boletoGrat3.ObtenerTarifa());
+        }
+
+        #endregion
+
+        #region Tests Issue #8: Restricciones horarias para franquicias
+
+        [Test]
+        public void TestMedioBoletoNoPermiteViajesFueraDeHorario()
+        {
+            DateTime ahora = DateTime.Now;
+            
+            // Solo ejecutar si estamos fuera del horario permitido
+            if (ahora.DayOfWeek != DayOfWeek.Saturday && 
+                ahora.DayOfWeek != DayOfWeek.Sunday && 
+                ahora.Hour >= 6 && ahora.Hour < 22)
+            {
+                Assert.Ignore("Test solo válido fuera del horario L-V 6-22");
+            }
+
+            MedioBoleto medioBoleto = new MedioBoleto();
+            medioBoleto.Cargar(5000);
+
+            // Intentar pagar debería fallar fuera del horario
+            bool resultado = colectivo.TryPagarCon(medioBoleto, out Boleto boleto);
+            Assert.IsFalse(resultado);
+            Assert.IsNull(boleto);
+        }
+
+        [Test]
+        public void TestBoletoGratuitoNoPermiteViajesFueraDeHorario()
+        {
+            DateTime ahora = DateTime.Now;
+            
+            if (ahora.DayOfWeek != DayOfWeek.Saturday && 
+                ahora.DayOfWeek != DayOfWeek.Sunday && 
+                ahora.Hour >= 6 && ahora.Hour < 22)
+            {
+                Assert.Ignore("Test solo válido fuera del horario L-V 6-22");
+            }
+
+            BoletoGratuito boletoGratuito = new BoletoGratuito();
+
+            bool resultado = colectivo.TryPagarCon(boletoGratuito, out Boleto boleto);
+            Assert.IsFalse(resultado);
+            Assert.IsNull(boleto);
+        }
+
+        [Test]
+        public void TestFranquiciaCompletaNoPermiteViajesFueraDeHorario()
+        {
+            DateTime ahora = DateTime.Now;
+            
+            if (ahora.DayOfWeek != DayOfWeek.Saturday && 
+                ahora.DayOfWeek != DayOfWeek.Sunday && 
+                ahora.Hour >= 6 && ahora.Hour < 22)
+            {
+                Assert.Ignore("Test solo válido fuera del horario L-V 6-22");
+            }
+
+            FranquiciaCompleta franquicia = new FranquiciaCompleta();
+
+            bool resultado = colectivo.TryPagarCon(franquicia, out Boleto boleto);
+            Assert.IsFalse(resultado);
+            Assert.IsNull(boleto);
+        }
+
+        [Test]
+        public void TestFranquiciasPermitenViajesDentroDeHorario()
+        {
+            if (!EsHorarioValidoParaFranquicias())
+            {
+                Assert.Ignore("Test solo válido L-V entre 6:00 y 22:00");
+            }
+
+            MedioBoleto medioBoleto = new MedioBoleto();
+            BoletoGratuito boletoGratuito = new BoletoGratuito();
+            FranquiciaCompleta franquicia = new FranquiciaCompleta();
+
+            medioBoleto.Cargar(5000);
+
+            // Todos deberían poder viajar dentro del horario
+            Boleto b1 = colectivo.PagarCon(medioBoleto);
+            Boleto b2 = colectivo.PagarCon(boletoGratuito);
+            Boleto b3 = colectivo.PagarCon(franquicia);
+
+            Assert.IsNotNull(b1);
+            Assert.IsNotNull(b2);
+            Assert.IsNotNull(b3);
+        }
+
+        #endregion
+
+        #region Tests Issue #9: Líneas interurbanas
+
+        [Test]
+        public void TestColectivoInterurbanoTarifaNormal()
+        {
+            ColectivoInterurbano interurbano = new ColectivoInterurbano("Gálvez");
+            Tarjeta tarjeta = new Tarjeta();
+            tarjeta.Cargar(5000);
+
+            Boleto boleto = interurbano.PagarCon(tarjeta);
+
+            Assert.AreEqual(3000, boleto.ObtenerTarifa());
+            Assert.AreEqual(2000, tarjeta.ObtenerSaldo());
+            Assert.AreEqual("Gálvez", boleto.ObtenerLinea());
+        }
+
+        [Test]
+        public void TestColectivoInterurbanoMedioBoleto()
+        {
+            if (!EsHorarioValidoParaFranquicias())
+            {
+                Assert.Ignore("Test solo válido L-V entre 6:00 y 22:00");
+            }
+
+            ColectivoInterurbano interurbano = new ColectivoInterurbano("Baigorria");
+            MedioBoleto medioBoleto = new MedioBoleto();
+            medioBoleto.Cargar(5000);
+
+            Boleto boleto = interurbano.PagarCon(medioBoleto);
+
+            // MedioBoleto paga 50% de $3000 = $1500
+            Assert.AreEqual(1500, boleto.ObtenerTarifa());
+            Assert.AreEqual(3500, medioBoleto.ObtenerSaldo());
+        }
+
+        [Test]
+        public void TestColectivoInterurbanoFranquiciaCompleta()
+        {
+            if (!EsHorarioValidoParaFranquicias())
+            {
+                Assert.Ignore("Test solo válido L-V entre 6:00 y 22:00");
+            }
+
+            ColectivoInterurbano interurbano = new ColectivoInterurbano("Villa Gobernador Gálvez");
+            FranquiciaCompleta franquicia = new FranquiciaCompleta();
+
+            Boleto boleto = interurbano.PagarCon(franquicia);
+
+            // FranquiciaCompleta no paga
+            Assert.AreEqual(0, boleto.ObtenerTarifa());
+            Assert.AreEqual(0, franquicia.ObtenerSaldo());
+        }
+
+        [Test]
+        public void TestColectivoInterurbanoBoletoGratuito()
+        {
+            if (!EsHorarioValidoParaFranquicias())
+            {
+                Assert.Ignore("Test solo válido L-V entre 6:00 y 22:00");
+            }
+
+            ColectivoInterurbano interurbano = new ColectivoInterurbano("Capitán Bermúdez");
+            BoletoGratuito boletoGratuito = new BoletoGratuito();
+            boletoGratuito.Cargar(5000);
+
+            // Primer viaje: gratis
+            Boleto boleto1 = interurbano.PagarCon(boletoGratuito);
+            Assert.AreEqual(0, boleto1.ObtenerTarifa());
+
+            // Segundo viaje: gratis
+            Boleto boleto2 = interurbano.PagarCon(boletoGratuito);
+            Assert.AreEqual(0, boleto2.ObtenerTarifa());
+
+            // Tercer viaje: paga tarifa completa interurbana
+            Boleto boleto3 = interurbano.PagarCon(boletoGratuito);
+            Assert.AreEqual(3000, boleto3.ObtenerTarifa());
+            Assert.AreEqual(2000, boletoGratuito.ObtenerSaldo());
+        }
+
+        [Test]
+        public void TestColectivoInterurbanoUsoFrecuente()
+        {
+            ColectivoInterurbano interurbano = new ColectivoInterurbano("Funes");
+            Tarjeta tarjeta = new Tarjeta();
+            
+            // Cargar solo montos válidos
+            // 29 viajes * 3000 = 87000
+            // Usando cargas válidas: 30000 + 30000 + 30000 = 90000
+            tarjeta.Cargar(30000);
+            tarjeta.Cargar(30000);
+            tarjeta.Cargar(30000); // Total: 90000
+
+            // Hacer 29 viajes interurbanos
+            for (int i = 1; i <= 29; i++)
+            {
+                Boleto boleto = interurbano.PagarCon(tarjeta);
+                Assert.AreEqual(3000, boleto.ObtenerTarifa(), $"Viaje {i}");
+            }
+
+            // Viaje 30: 20% descuento sobre $3000 = $2400
+            Boleto boleto30 = interurbano.PagarCon(tarjeta);
+            Assert.AreEqual(2400, boleto30.ObtenerTarifa());
+        }
+
+        [Test]
+        public void TestColectivoInterurbanoConSaldoNegativo()
+        {
+            ColectivoInterurbano interurbano = new ColectivoInterurbano("Roldán");
+            Tarjeta tarjeta = new Tarjeta();
+            tarjeta.Cargar(4000);
+
+            // Primer viaje: 4000 - 3000 = 1000
+            interurbano.PagarCon(tarjeta);
+            Assert.AreEqual(1000, tarjeta.ObtenerSaldo());
+
+            // Segundo viaje: 1000 - 3000 = -2000
+            // Esto excede el límite de -1200
+            // El test debe verificar que NO se puede realizar el viaje
+            bool resultado = interurbano.TryPagarCon(tarjeta, out Boleto boleto);
+            Assert.IsFalse(resultado, "No debería poder pagar porque excede el límite de saldo negativo");
+            Assert.IsNull(boleto);
+            Assert.AreEqual(1000, tarjeta.ObtenerSaldo(), "El saldo no debería cambiar si el pago falla");
         }
 
         #endregion
