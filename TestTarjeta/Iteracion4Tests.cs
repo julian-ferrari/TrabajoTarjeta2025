@@ -1,4 +1,4 @@
-﻿using NUnit.Framework;
+using NUnit.Framework;
 using System;
 using TrabajoTarjeta;
 
@@ -214,6 +214,94 @@ namespace TestTarjeta
 
         #endregion
 
+        #region Tests Issue #8: Restricciones horarias para franquicias
+
+        [Test]
+        public void TestMedioBoletoNoPermiteViajesFueraDeHorario()
+        {
+            DateTime ahora = DateTime.Now;
+            
+            // Solo ejecutar si estamos fuera del horario permitido
+            if (ahora.DayOfWeek != DayOfWeek.Saturday && 
+                ahora.DayOfWeek != DayOfWeek.Sunday && 
+                ahora.Hour >= 6 && ahora.Hour < 22)
+            {
+                Assert.Ignore("Test solo válido fuera del horario L-V 6-22");
+            }
+
+            MedioBoleto medioBoleto = new MedioBoleto();
+            medioBoleto.Cargar(5000);
+
+            // Intentar pagar debería fallar fuera del horario
+            bool resultado = colectivo.TryPagarCon(medioBoleto, out Boleto boleto);
+            Assert.IsFalse(resultado);
+            Assert.IsNull(boleto);
+        }
+
+        [Test]
+        public void TestBoletoGratuitoNoPermiteViajesFueraDeHorario()
+        {
+            DateTime ahora = DateTime.Now;
+            
+            if (ahora.DayOfWeek != DayOfWeek.Saturday && 
+                ahora.DayOfWeek != DayOfWeek.Sunday && 
+                ahora.Hour >= 6 && ahora.Hour < 22)
+            {
+                Assert.Ignore("Test solo válido fuera del horario L-V 6-22");
+            }
+
+            BoletoGratuito boletoGratuito = new BoletoGratuito();
+
+            bool resultado = colectivo.TryPagarCon(boletoGratuito, out Boleto boleto);
+            Assert.IsFalse(resultado);
+            Assert.IsNull(boleto);
+        }
+
+        [Test]
+        public void TestFranquiciaCompletaNoPermiteViajesFueraDeHorario()
+        {
+            DateTime ahora = DateTime.Now;
+            
+            if (ahora.DayOfWeek != DayOfWeek.Saturday && 
+                ahora.DayOfWeek != DayOfWeek.Sunday && 
+                ahora.Hour >= 6 && ahora.Hour < 22)
+            {
+                Assert.Ignore("Test solo válido fuera del horario L-V 6-22");
+            }
+
+            FranquiciaCompleta franquicia = new FranquiciaCompleta();
+
+            bool resultado = colectivo.TryPagarCon(franquicia, out Boleto boleto);
+            Assert.IsFalse(resultado);
+            Assert.IsNull(boleto);
+        }
+
+        [Test]
+        public void TestFranquiciasPermitenViajesDentroDeHorario()
+        {
+            if (!EsHorarioValidoParaFranquicias())
+            {
+                Assert.Ignore("Test solo válido L-V entre 6:00 y 22:00");
+            }
+
+            MedioBoleto medioBoleto = new MedioBoleto();
+            BoletoGratuito boletoGratuito = new BoletoGratuito();
+            FranquiciaCompleta franquicia = new FranquiciaCompleta();
+
+            medioBoleto.Cargar(5000);
+
+            // Todos deberían poder viajar dentro del horario
+            Boleto b1 = colectivo.PagarCon(medioBoleto);
+            Boleto b2 = colectivo.PagarCon(boletoGratuito);
+            Boleto b3 = colectivo.PagarCon(franquicia);
+
+            Assert.IsNotNull(b1);
+            Assert.IsNotNull(b2);
+            Assert.IsNotNull(b3);
+        }
+
+        #endregion
+
         #region Tests Issue #9: Líneas interurbanas
 
         [Test]
@@ -298,8 +386,8 @@ namespace TestTarjeta
         {
             ColectivoInterurbano interurbano = new ColectivoInterurbano("Funes");
             Tarjeta tarjeta = new Tarjeta();
-
-            // CORREGIDO: Cargar solo montos válidos
+            
+            // Cargar solo montos válidos
             // 29 viajes * 3000 = 87000
             // Usando cargas válidas: 30000 + 30000 + 30000 = 90000
             tarjeta.Cargar(30000);
@@ -330,7 +418,7 @@ namespace TestTarjeta
             Assert.AreEqual(1000, tarjeta.ObtenerSaldo());
 
             // Segundo viaje: 1000 - 3000 = -2000
-            // CORREGIDO: Esto excede el límite de -1200
+            // Esto excede el límite de -1200
             // El test debe verificar que NO se puede realizar el viaje
             bool resultado = interurbano.TryPagarCon(tarjeta, out Boleto boleto);
             Assert.IsFalse(resultado, "No debería poder pagar porque excede el límite de saldo negativo");
