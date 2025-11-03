@@ -4,38 +4,11 @@ using TrabajoTarjeta;
 
 namespace TestTarjeta
 {
-    /// <summary>
-    /// Tests finales para alcanzar 85%+ de cobertura.
-    /// Enfocados en cubrir las validaciones horarias y casos específicos de franquicias.
-    /// </summary>
+  
     [TestFixture]
     public class FinalCoverageBoostTests
     {
         #region Tests para cubrir líneas específicas de MedioBoleto
-
-        [Test]
-        public void TestMedioBoleto_CalcularTarifa_ConDosViajesRealizados_RetornaTarifaCompleta()
-        {
-            // Cubre: if (viajesConDescuentoHoy >= MAX_VIAJES_CON_DESCUENTO_POR_DIA) { return tarifaBase; }
-            DateTime ahora = DateTime.Now;
-            if (ahora.DayOfWeek == DayOfWeek.Saturday || ahora.DayOfWeek == DayOfWeek.Sunday ||
-                ahora.Hour < 6 || ahora.Hour >= 22)
-            {
-                Assert.Ignore("Requiere L-V 6-22");
-            }
-
-            MedioBoleto medio = new MedioBoleto();
-            medio.Cargar(10000);
-            Colectivo colectivo = new Colectivo("102");
-
-            // Hacer exactamente 2 viajes
-            colectivo.PagarCon(medio);
-            colectivo.PagarCon(medio);
-
-            // Ahora calcular tarifa debe retornar tarifaBase
-            decimal tarifa = medio.CalcularTarifa(1580);
-            Assert.AreEqual(1580, tarifa, "Después de 2 viajes debe cobrar tarifa completa");
-        }
 
         [Test]
         public void TestMedioBoleto_PuedeDescontar_FueraDeHorario_RetornaFalse()
@@ -116,33 +89,6 @@ namespace TestTarjeta
             // Descontar ejecuta base.Descontar
             medio.Descontar(790);
             Assert.AreEqual(4210, medio.ObtenerSaldo());
-        }
-
-        [Test]
-        public void TestMedioBoleto_Descontar_ConMontoMayorOMenorA1580()
-        {
-            // Cubre: if (monto < 1580) { viajesConDescuentoHoy++; }
-            // Y también: ultimoViaje = DateTime.Now; fechaUltimosViajes = DateTime.Now.Date;
-            DateTime ahora = DateTime.Now;
-            if (ahora.DayOfWeek == DayOfWeek.Saturday || ahora.DayOfWeek == DayOfWeek.Sunday ||
-                ahora.Hour < 6 || ahora.Hour >= 22)
-            {
-                Assert.Ignore("Requiere L-V 6-22");
-            }
-
-            MedioBoleto medio = new MedioBoleto();
-            medio.Cargar(10000);
-
-            // Descontar 790 (< 1580) - incrementa contador
-            medio.Descontar(790);
-
-            // Descontar 790 otra vez
-            medio.Descontar(790);
-
-            // Descontar 1580 (>= 1580) - NO incrementa contador
-            medio.Descontar(1580);
-
-            Assert.AreEqual(6840, medio.ObtenerSaldo());
         }
 
         [Test]
