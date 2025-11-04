@@ -9,6 +9,16 @@ namespace TrabajoTarjeta
         private int viajesConDescuentoHoy;
         private const int MINUTOS_ENTRE_VIAJES = 5;
         private const int MAX_VIAJES_CON_DESCUENTO_POR_DIA = 2;
+        private readonly ITiempoProvider tiempoProvider;
+
+        public MedioBoleto() : this(new TiempoReal())
+        {
+        }
+
+        public MedioBoleto(ITiempoProvider tiempo)
+        {
+            this.tiempoProvider = tiempo;
+        }
 
         public override decimal CalcularTarifa(decimal tarifaBase)
         {
@@ -22,24 +32,16 @@ namespace TrabajoTarjeta
             return tarifaBase / 2;
         }
 
-        // ============================================================
-        // MÉTODO MODIFICADO: Agregar validación horaria
-        // ============================================================
-
         public override bool PuedeDescontar(decimal monto)
         {
-            // ============================================================
-            // NUEVA VALIDACIÓN: Horario permitido (L-V 6-22hs)
-            // ============================================================
-            if (!EsHorarioPermitido(DateTime.Now))
+            if (!EsHorarioPermitido(tiempoProvider.Now()))
             {
                 return false;
             }
 
-            // Verificar tiempo mínimo entre viajes (5 minutos)
             if (ultimoViaje.HasValue)
             {
-                TimeSpan tiempoTranscurrido = DateTime.Now - ultimoViaje.Value;
+                TimeSpan tiempoTranscurrido = tiempoProvider.Now() - ultimoViaje.Value;
 
                 if (tiempoTranscurrido.TotalMinutes < MINUTOS_ENTRE_VIAJES)
                 {
@@ -60,13 +62,13 @@ namespace TrabajoTarjeta
                 viajesConDescuentoHoy++;
             }
 
-            ultimoViaje = DateTime.Now;
-            fechaUltimosViajes = DateTime.Now.Date;
+            ultimoViaje = tiempoProvider.Now();
+            fechaUltimosViajes = tiempoProvider.Now().Date;
         }
 
         private void ActualizarContadorDiario()
         {
-            DateTime fechaActual = DateTime.Now;
+            DateTime fechaActual = tiempoProvider.Now();
 
             if (!fechaUltimosViajes.HasValue || fechaActual.Date > fechaUltimosViajes.Value)
             {
@@ -74,23 +76,13 @@ namespace TrabajoTarjeta
             }
         }
 
-        // ============================================================
-        // NUEVO MÉTODO: Validar horario y día
-        // ============================================================
-
-        /// <summary>
-        /// Verifica si el horario y día son válidos para franquicias.
-        /// Lunes a Viernes de 6:00 a 22:00.
-        /// </summary>
         protected bool EsHorarioPermitido(DateTime fecha)
         {
-            // Verificar día de la semana (L-V)
             if (fecha.DayOfWeek == DayOfWeek.Saturday || fecha.DayOfWeek == DayOfWeek.Sunday)
             {
                 return false;
             }
 
-            // Verificar horario (6:00 a 22:00)
             int hora = fecha.Hour;
             if (hora < 6 || hora >= 22)
             {
